@@ -1,0 +1,28 @@
+Smart Invoice Extractor – Simple User Guide
+1️⃣ Run the app
+Open Command Prompt
+Go to the folder where the file is saved
+cd your_folder_path
+
+Run:
+pip install -r requirements.txt
+
+streamlit run smart_invoice_extractor.py
+
+
+App opens in your browser
+2️⃣ Upload invoices
+Click Upload Invoice Files
+
+Select PDF / JPG / PNG files
+(You can select multiple files)
+
+3️⃣ Extract data
+Click 🚀 Start Extraction
+
+Wait a few seconds
+
+4️⃣ View & download
+Data appears in a table
+
+Click ⬇️ Download Excel to save

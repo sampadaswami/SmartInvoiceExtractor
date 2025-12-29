@@ -1,0 +1,8 @@
+streamlit
+pandas
+pytesseract
+Pillow
+PyMuPDF
+pdf2image
+opencv-python
+numpy
