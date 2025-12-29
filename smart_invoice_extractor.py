@@ -162,7 +162,7 @@ if st.button("🚀 Start Extraction"):
     st.download_button(
         "⬇️ Download Excel",
         data=excel_buffer.getvalue(),
-        file_name=f"invoice_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+        file_name = f"invoice_report_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 
