@@ -13,13 +13,13 @@ import streamlit as st
 import pandas as pd
 import pytesseract
 from PIL import Image, ImageEnhance
-import fitz
+import fitz  # PyMuPDF
 from pdf2image import convert_from_path
 
 # ==============================
 # CONFIG
 # ==============================
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+pytesseract.pytesseract.tesseract_cmd = r"/usr/bin/tesseract"  # Streamlit Cloud safe
 SUPPORTED_EXT = [".pdf", ".png", ".jpg", ".jpeg"]
 
 # ==============================
@@ -33,11 +33,12 @@ def extract_text_from_image(path):
 def extract_text_from_pdf(path):
     text = ""
     doc = fitz.open(path)
+
     for page in doc:
         text += page.get_text()
     doc.close()
 
-    # Fallback to OCR if PDF text is weak
+    # OCR fallback
     if len(text.strip()) < 100:
         for img in convert_from_path(path):
             text += pytesseract.image_to_string(img, lang="eng")
@@ -51,7 +52,7 @@ def auto_extract_fields(text):
     data = {}
     lines = [l.strip() for l in text.split("\n") if len(l.strip()) > 2]
 
-    # Generic KEY : VALUE extractor
+    # Generic Key : Value
     for line in lines:
         m = re.match(r"([A-Za-z\s\.\-%/]+)\s*[:\-]\s*(.+)", line)
         if m:
@@ -60,7 +61,7 @@ def auto_extract_fields(text):
             if len(key) < 40 and len(value) < 100:
                 data[key] = value
 
-    # Invoice Number
+    # Invoice No
     m = re.search(r"Invoice\s*No\.?\s*[:\-]?\s*([A-Z0-9\/\-]+)", text, re.I)
     if m:
         data["Invoice No"] = m.group(1)
@@ -70,12 +71,8 @@ def auto_extract_fields(text):
     if m:
         data["Invoice Date"] = m.group(1)
 
-    # Customer Name (Neutral)
-    m = re.search(
-        r"(Customer|Client|Bill\s*To)\s*Name?\s*[:\-]?\s*([A-Za-z\s]+)",
-        text,
-        re.I
-    )
+    # Customer / Bill To
+    m = re.search(r"(Customer|Client|Bill\s*To)\s*Name?\s*[:\-]?\s*([A-Za-z\s]+)", text, re.I)
     if m:
         data["Customer Name"] = m.group(2).strip()
 
@@ -83,11 +80,6 @@ def auto_extract_fields(text):
     m = re.search(r"Total\s*Amount\s*[:\-]?\s*(\d[\d,\.]*)", text, re.I)
     if m:
         data["Total Amount"] = float(m.group(1).replace(",", ""))
-
-    # Amount in Words
-    m = re.search(r"Amount\s*in\s*Words\s*[:\-]?\s*(.+)", text, re.I)
-    if m:
-        data["Amount In Words"] = m.group(1).strip()
 
     # Invoice Type
     if "tax invoice" in text.lower():
@@ -116,7 +108,6 @@ def process_file(path):
 # STREAMLIT UI
 # ==============================
 st.set_page_config("Smart Invoice Extractor", layout="centered")
-
 st.title("📄 Smart Invoice Extractor")
 st.caption("Auto Column • Business & Tax Invoice OCR")
 
@@ -144,15 +135,18 @@ if st.button("🚀 Start Extraction"):
     st.success(f"Processed {len(df)} invoices")
     st.dataframe(df, use_container_width=True)
 
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    excel = io.BytesIO()
-    df.to_excel(excel, index=False)
+    # ==============================
+    # EXCEL EXPORT (FIXED)
+    # ==============================
+    excel_buffer = io.BytesIO()
+    with pd.ExcelWriter(excel_buffer, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False)
 
     st.download_button(
         "⬇️ Download Excel",
-        excel.getvalue(),
-        f"invoice_auto_{ts}.xlsx",
+        data=excel_buffer.getvalue(),
+        file_name=f"invoice_auto_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-st.caption("Auto-detects fields • Dynamic columns • No hardcoding")
+st.caption("Auto-detects fields • Dynamic columns • Streamlit Cloud safe")
